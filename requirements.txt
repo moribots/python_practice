@@ -3,3 +3,9 @@ pandas
 torch
 numpy
 gym
+scipy
+matplotlib
+scikit-learn
+opencv-python
+jax                    # For QP problems and automatic differentiation
+jaxlib                 # JAX runtime

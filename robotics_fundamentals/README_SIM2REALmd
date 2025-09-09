@@ -1,0 +1,64 @@
+# Sim‑to‑Real Transfer & Domain/Dynamics Randomization
+
+## TL;DR
+Randomize visual and physical parameters at train time so the real world is “just another sample.” Add online adaptation when feasible.
+
+---
+
+## 1) Why sim‑to‑real is hard
+- **Visual gap**: textures, lighting, camera intrinsics/extrinsics.
+- **Dynamics gap**: mass, friction, backlash, latency, actuator curves.
+- **Sensing**: noise, bias, drift, calibration errors.
+
+Policies trained only on nominal sim distribution $p_{\text{sim}}$ may fail under $p_{\text{real}}$.
+
+---
+
+## 2) Domain randomization (DR)
+During training, sample environment parameters $\phi\sim P(\Phi)$ each episode; optimize
+$$
+\max_{\pi}\ \mathbb{E}_{\phi\sim P(\Phi)}\, \mathbb{E}_{\tau\sim p_\phi,\,\pi}[\,R(\tau)\,].
+$$
+Where:
+- $\phi$: vector of randomized parameters (e.g., link masses, friction coefficients, lighting).
+- $P(\Phi)$: distribution/ranges set from priors or system ID.
+
+**Visual DR**: textures, lights, camera noise; **Dynamics DR**: $m$, $I$, $\mu$, spring‑damper, delays.
+
+**Curriculum**: start narrow, widen ranges as stability improves.
+
+---
+
+## 3) Dynamics randomization details
+If friction model is $\tau_f = b\,\dot q + \tau_c\,\mathrm{sgn}(\dot q)$, randomize $b,\tau_c$; for latency $\Delta t$, add action hold or filtered actuation.
+
+**Robust objective** (risk‑sensitive variant):
+$$
+\max_{\pi}\ \min_{\phi\in\mathcal{S}}\ \mathbb{E}_{\tau\sim p_\phi,\,\pi}[\,R(\tau)\,],
+$$
+with $\mathcal{S}$ a plausible set from priors.
+
+---
+
+## 4) Rapid Motor Adaptation (RMA) sketch
+Decompose policy $\pi(a\mid s,z)$ where $z$ are **latent extrinsics** predicted by an adaptation module $\phi(z\mid h_t)$ from recent history $h_t$. Train in sim with DR; at test time, infer $z$ online on the robot.
+
+---
+
+## 5) Evaluation
+- **Grid sweeps** over $\phi$: success rate heatmaps.
+- **Latency tolerance**: inject delays/jitter.
+- **Real runs**: success, resets, collisions; compare to nominal‑sim policy.
+
+---
+
+## 6) Pitfalls
+- Unrealistic ranges (too narrow or broad).
+- Ignoring sensor bias and timing; forgetting camera calibration.
+- Policies fragile to contact model differences (tune restitution/cfm/erp).
+
+---
+
+## 7) Interview talking points
+- “We convert sim‑to‑real into robustness by training over a **family** of environments; when feasible, add **online adaptation** (latent extrinsics) to track real‑world drift.”
+
